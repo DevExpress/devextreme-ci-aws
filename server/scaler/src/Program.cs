@@ -33,7 +33,7 @@ namespace Scaler {
             + "  ) &"
             + ")";
 
-        const int PAUSE_SECONDS = 15;
+        const int PAUSE_SECONDS = 5;
         const int MIN_AGENT_UPTIME_MINUTES = 5;
         const int REACHABILITY_ALARM_THRESHOLD_MINUTES = 10;
 
