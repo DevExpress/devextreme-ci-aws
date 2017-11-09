@@ -35,6 +35,7 @@ namespace Scaler {
 
         const int PAUSE_SECONDS = 15;
         const int MIN_AGENT_UPTIME_MINUTES = 5;
+        const int REACHABILITY_ALARM_THRESHOLD_MINUTES = 10;
 
         static void Main(string[] args) {
             var droneApi = new DroneApi(Env.DroneUrl, Env.DroneToken);
@@ -79,10 +80,10 @@ namespace Scaler {
                 var allAgents = TryReadInstancesByTag(aws, AGENT_TAG_NAME, AGENT_TAG_VALUE);
                 Console.WriteLine("Total agents: " + allAgents.Length);
 
-                TryTerminateByCondition(aws, allAgents, "stopped", i => i.State.Name == InstanceStateName.Stopped);
+                TryTerminate(aws, "stopped", allAgents.Where(i => i.State.Name == InstanceStateName.Stopped));
                 TryShutdownExcessiveRunning(aws, allAgents, desiredCount);
 
-                TryTerminateByCondition(aws, allAgents, "lost", i => i.State.Name == InstanceStateName.Running && DateTime.Now - i.LaunchTime > TimeSpan.FromHours(12));
+                TryTerminate(aws, "lost", allAgents.Where(i => i.State.Name == InstanceStateName.Running && DateTime.Now - i.LaunchTime > TimeSpan.FromHours(12)));
             }
         }
 
@@ -151,11 +152,13 @@ namespace Scaler {
             var excess = Math.Max(0, sortedRunningAgents.Length - desiredCount);
             var idsToSendShutdownScript = new List<string>();
             var idsToDetach = new List<string>();
+            var idsToCheckStatus = new List<string>();
 
             foreach(var i in sortedRunningAgents) {
                 var uptime = TimeSpan.FromSeconds(Math.Round((DateTime.Now - i.LaunchTime).TotalSeconds));
                 var retain = uptime < TimeSpan.FromMinutes(MIN_AGENT_UPTIME_MINUTES);
                 var attached = i.Tags.Any(t => t.Key == SCALING_GROUP_TAG && t.Value == SCALING_GROUP_NAME);
+                var checkStatus = uptime > TimeSpan.FromMinutes(REACHABILITY_ALARM_THRESHOLD_MINUTES);
 
                 Console.Write($"  {i.InstanceId} up for {uptime}");
                 if(retain)
@@ -163,6 +166,10 @@ namespace Scaler {
                 if(!attached)
                     Console.Write(" [detached]");
 
+                if(checkStatus) {
+                    Console.Write(" [will check status]");
+                    idsToCheckStatus.Add(i.InstanceId);
+                }
 
                 if(excess > 0 && !retain) {
                     Console.Write(" [will shutdown]");
@@ -177,6 +184,16 @@ namespace Scaler {
                 }
 
                 Console.WriteLine();
+            }
+
+            if(idsToCheckStatus.Any()) {
+                var unreachableIds = FindUnreachable(aws, idsToCheckStatus);
+                if(unreachableIds.Any()) {
+                    Console.WriteLine("Unreachable agents detected!");
+                    idsToSendShutdownScript = idsToSendShutdownScript.Except(unreachableIds).ToList();
+                    idsToDetach = idsToDetach.Except(unreachableIds).ToList();
+                    TryTerminate(aws, "unreachable", unreachableIds);
+                }
             }
 
             if(idsToSendShutdownScript.Any())
@@ -216,12 +233,11 @@ namespace Scaler {
             }
         }
 
-        static void TryTerminateByCondition(MyAWS aws, EC2Instance[] allAgents, string adjective, Func<EC2Instance, bool> predicate) {
-            var ids = allAgents
-                .Where(predicate)
-                .Select(i => i.InstanceId)
-                .ToList();
+        static void TryTerminate(MyAWS aws, string adjective, IEnumerable<EC2Instance> query) {
+            TryTerminate(aws, adjective, query.Select(i => i.InstanceId).ToList());
+        }
 
+        static void TryTerminate(MyAWS aws, string adjective, List<string> ids) {
             if(!ids.Any())
                 return;
 
@@ -234,6 +250,28 @@ namespace Scaler {
                 PrintStatus(response);
             } catch(Exception x) {
                 PrintError(x);
+            }
+        }
+
+        static List<string> FindUnreachable(MyAWS aws, List<string> ids) {
+            try {
+                Console.WriteLine("Read agent statuses");
+                var statusResponse = aws.EC2
+                    .DescribeInstanceStatusAsync(new DescribeInstanceStatusRequest {
+                        InstanceIds = ids
+                    }).GetAwaiter().GetResult();
+
+                PrintStatus(statusResponse);
+
+                return statusResponse.InstanceStatuses
+                    .Where(s => s.Status.Details.Any(d => d.Name == StatusName.Reachability
+                        && d.Status == StatusType.Failed
+                        && DateTime.Now - d.ImpairedSince > TimeSpan.FromMinutes(REACHABILITY_ALARM_THRESHOLD_MINUTES)))
+                    .Select(i => i.InstanceId)
+                    .ToList();
+            } catch(Exception x) {
+                PrintError(x);
+                return new List<string>();
             }
         }
 
