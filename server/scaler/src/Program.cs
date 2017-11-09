@@ -42,10 +42,10 @@ namespace Scaler {
             var lastDroneApiSuccess = DateTime.MinValue;
 
             while(true) {
-                var jobCount = 0;
+                var droneQueue = new DroneQueue();
 
                 try {
-                    jobCount = droneApi.ReadActiveDroneJobCount();
+                    droneQueue = droneApi.ReadQueue();
                     lastDroneApiSuccess = DateTime.Now;
                 } catch(Exception x) {
                     PrintError(x);
@@ -55,16 +55,25 @@ namespace Scaler {
                         PauseWithDots();
                         continue;
                     } else {
-                        Console.WriteLine("  Assuming no jobs");
+                        Console.WriteLine("  Assuming queue is empty");
+                    }
+                }
+
+                // FYI https://github.com/drone/drone/issues/2189
+                foreach(var b in droneQueue.ZombieBuilds) {
+                    try {
+                        droneApi.ZombieKill(b);
+                    } catch(Exception x) {
+                        PrintError(x);
                     }
                 }
 
                 var desiredAgentCount = Math.Min(
-                    (int)Math.Ceiling((double)jobCount / Env.JobsPerAgent),
+                    (int)Math.Ceiling((double)droneQueue.ActiveJobCount / Env.JobsPerAgent),
                     Env.MaxAgents
                 );
 
-                Console.WriteLine("Active jobs: " + jobCount);
+                Console.WriteLine("Active jobs: " + droneQueue.ActiveJobCount);
                 Console.WriteLine("Desired agents: " + desiredAgentCount);
 
                 AdjustAgentCount(desiredAgentCount);
