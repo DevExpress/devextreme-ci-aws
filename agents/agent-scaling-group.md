@@ -8,7 +8,7 @@
 - User data: [agent-user-data.sh](agent-user-data.sh) (**make sure secrets are filled!**)
 - Assign a public IP address to every instance
 - 16G SSD (general purpose)
-- Security group: `devextreme-ci-sg-agent` (default VPC, inbound TCP 22 from 0.0.0.0/0)
+- Security group: [`devextreme-ci-sg-agent`](../security-groups.md)
 
 ## Auto Scaling Group
 - Group name: `devextreme-ci-agent-scaling`

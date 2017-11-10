@@ -9,7 +9,7 @@
 - Enable **termination protection**
 - 8G Magnetic
 - Tags: `Product=devextreme-ci`
-- Security group: `devextreme-ci-sg-server` (default VPC, inbound TCP 22, 80, 9000 from 0.0.0.0/0)
+- Security group: [`devextreme-ci-sg-server`](../security-groups.md)
 
 After launch:
 

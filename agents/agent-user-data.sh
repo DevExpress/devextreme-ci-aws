@@ -8,7 +8,7 @@ docker run -d \
     --name=drone-agent \
     -e DRONE_DEBUG=true \
     -e DRONE_SECRET=.... \
-    -e DRONE_SERVER=X.X.X.X:9000 \
+    -e DRONE_SERVER=ec2-....compute.amazonaws.com:9000 \
     -e DRONE_MAX_PROCS=4 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --restart=on-failure \
