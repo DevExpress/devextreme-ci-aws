@@ -1,7 +1,7 @@
 ## Instance
 
 - Amazon Linux
-- t2.nano
+- t2.micro
 - Network:
     - default VPC
     - No subnet preference
@@ -24,6 +24,30 @@ Use a separate account (`devextreme-ci-robot`) with the following permissions:
 - `AutoScalingFullAccess`
 - `AmazonSSMFullAccess`
 
+## S3 Bucket for DockerHub cache
+
+- Name: `devextreme-ci-dockerhub-cache`
+- Region: same as for EC2
+- Permissions > Bucket Policy (**replace AWS account id!**):
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::????????????:user/devextreme-ci-robot"
+                },
+                "Action": "s3:*",
+                "Resource": [
+                    "arn:aws:s3:::devextreme-ci-dockerhub-cache",
+                    "arn:aws:s3:::devextreme-ci-dockerhub-cache/*"
+                ]
+            }
+        ]
+    }
+    ```
+
 ## Apps
 
 Install Docker and git:
@@ -45,4 +69,8 @@ Clone this repo. Then:
     - `restart.sh`
 
 - In `log-trunc`
+    - `restart.sh`
+
+- In `dockerhub-cache`
+    - create `secrets` file
     - `restart.sh`
