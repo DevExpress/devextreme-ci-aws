@@ -18,6 +18,7 @@ sudo docker run -dti \
     -e REGISTRY_STORAGE_S3_REGION=$AWS_REGION \
     -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
     -e REGISTRY_STORAGE_S3_ROOTDIRECTORY=/ \
+    -e REGISTRY_STORAGE_DELETE_ENABLED=true \
     -p 5000:5000 \
     --restart=unless-stopped \
     --log-opt max-size=1m \
