@@ -21,6 +21,7 @@ sudo docker run -d \
     -e DRONE_ORGS=DevExpress \
     -e DRONE_ADMIN=AlekseyMartynov \
     -v drone-data:/var/lib/drone \
+    --net drone-server-net \
     -p 80:8000 \
     -p 9000:9000 \
     --restart=unless-stopped \

@@ -60,6 +60,8 @@ sudo service docker start
 
 Clone this repo. Then:
 
+- `sudo docker network create drone-server-net`
+
 - In `drone-server`
     - Create `secrets` file
     - `restart.sh`
