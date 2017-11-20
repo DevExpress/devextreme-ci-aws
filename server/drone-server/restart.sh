@@ -12,7 +12,7 @@ sudo docker rm -f drone-server || true
 sudo docker run -d \
     --name=drone-server \
     -e DRONE_DEBUG=true \
-    -e DRONE_SERVER_HOST=$DRONE_SERVER_HOST \
+    -e DRONE_SERVER_HOST=https://devextreme-ci.devexpress.com \
     -e DRONE_AGENT_SECRET=$DRONE_AGENT_SECRET \
     -e DRONE_OPEN=true \
     -e DRONE_GITHUB=true \
@@ -22,7 +22,6 @@ sudo docker run -d \
     -e DRONE_ADMIN=AlekseyMartynov \
     -v drone-data:/var/lib/drone \
     --net drone-server-net \
-    -p 80:8000 \
     -p 9000:9000 \
     --restart=unless-stopped \
     --log-opt max-size=1m \

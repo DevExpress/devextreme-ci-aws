@@ -66,6 +66,9 @@ Clone this repo. Then:
     - Create `secrets` file
     - `restart.sh`
 
+- In `https-proxy`
+    - `restart.sh`
+
 - In `scaler`
     - Create `Properties/launchSettings.json` file
     - `restart.sh`
