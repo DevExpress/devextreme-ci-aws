@@ -40,6 +40,7 @@ namespace Scaler {
         static void Main(string[] args) {
             var droneApi = new DroneApi(Env.DroneUrl, Env.DroneToken);
             var lastDroneApiSuccess = DateTime.MinValue;
+            var allAgentsAreTerminated = false;
 
             while(true) {
                 var droneQueue = new DroneQueue();
@@ -76,12 +77,17 @@ namespace Scaler {
                 Console.WriteLine("Active jobs: " + droneQueue.ActiveJobCount);
                 Console.WriteLine("Desired agents: " + desiredAgentCount);
 
-                AdjustAgentCount(desiredAgentCount);
+                if(desiredAgentCount > 0 || !allAgentsAreTerminated)
+                    AdjustAgentCount(desiredAgentCount, out allAgentsAreTerminated);
+                else
+                    Console.WriteLine("Do nothing");
+
                 PauseWithDots();
             }
         }
 
-        static void AdjustAgentCount(int desiredCount) {
+        static void AdjustAgentCount(int desiredCount, out bool allAgentsAreTerminated) {
+            allAgentsAreTerminated = false;
             using(var aws = new MyAWS(Env.AwsRegion, Env.AwsAccessKey, Env.AwsSecretKey)) {
                 if(TryScaleOut(aws, desiredCount))
                     return;
@@ -89,10 +95,16 @@ namespace Scaler {
                 var allAgents = TryReadInstancesByTag(aws, AGENT_TAG_NAME, AGENT_TAG_VALUE);
                 Console.WriteLine("Total agents: " + allAgents.Length);
 
-                TryTerminate(aws, "stopped", allAgents.Where(i => i.State.Name == InstanceStateName.Stopped));
-                TryShutdownExcessiveRunning(aws, allAgents, desiredCount);
+                allAgentsAreTerminated = allAgents.All(i => i.State.Name == InstanceStateName.Terminated);
 
-                TryTerminate(aws, "lost", allAgents.Where(i => i.State.Name == InstanceStateName.Running && DateTime.Now - i.LaunchTime > TimeSpan.FromHours(12)));
+                if(!allAgentsAreTerminated) {
+                    TryTerminate(aws, "stopped", allAgents.Where(i => i.State.Name == InstanceStateName.Stopped));
+                    TryShutdownExcessiveRunning(aws, allAgents, desiredCount);
+
+                    TryTerminate(aws, "lost", allAgents.Where(i => i.State.Name == InstanceStateName.Running && DateTime.Now - i.LaunchTime > TimeSpan.FromHours(12)));
+                } else {
+                    Console.WriteLine("All agents are terminated");
+                }
             }
         }
 
