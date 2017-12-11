@@ -11,7 +11,7 @@ function certbot_renew {
     fi
 }
 
-nginx
+nginx -g 'daemon off;' &
 certbot_renew
 
 if [ -f /etc/letsencrypt/live/$LE_DOMAIN/fullchain.pem ]; then

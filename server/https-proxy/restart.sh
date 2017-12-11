@@ -1,10 +1,12 @@
-#/bin/bash -e
+#!/bin/bash -e
 
 if [ ! -f rootfs/dhparam.pem ]; then
     openssl dhparam -outform pem -out rootfs/dhparam.pem 2048
 fi
 
 sudo docker build -t private/https-proxy .
+sudo docker run --rm private/https-proxy nginx -t
+
 sudo docker rm -f https-proxy || true
 
 sudo docker run -dti \
