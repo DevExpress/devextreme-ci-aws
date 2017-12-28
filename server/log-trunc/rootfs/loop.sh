@@ -1,6 +1,7 @@
 #!/bin/sh
 
 DB=/drone-data/drone.sqlite
+SURROGATE='[{"pos":0,"out":"(log truncated)"}]'
 
 while true; do
     echo "$(date)"
@@ -8,7 +9,7 @@ while true; do
     echo "Total logs: $(sqlite3 $DB 'select count(*) from logs')"
 
     sqlite3 $DB "\
-        update logs set log_data='(log truncated)' where log_id < (select max(log_id) - 20 * 1000 FROM logs); \
+        update logs set log_data='$SURROGATE' where log_id < (select max(log_id) - 20 * 1000 FROM logs); \
         select 'Truncated logs: ' || changes(); \
     "
 
