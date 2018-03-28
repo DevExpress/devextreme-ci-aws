@@ -14,8 +14,10 @@ certbot_renew() {
 nginx -g 'daemon off;' &
 certbot_renew
 
-if [ -f /etc/letsencrypt/live/$LE_DOMAIN/fullchain.pem ]; then
-    mv /etc/nginx/conf.d/cert.delayed /etc/nginx/conf.d/cert.conf
+CERT_CONF=/etc/nginx/conf.d/cert.conf
+
+if [ -f /etc/letsencrypt/live/$LE_DOMAIN/fullchain.pem ] && [ ! -f $CERT_CONF ]; then
+    mv $CERT_CONF-delayed $CERT_CONF
     nginx -s reload
 fi
 
