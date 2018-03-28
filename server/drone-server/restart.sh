@@ -26,4 +26,4 @@ sudo docker run -d \
     --restart=unless-stopped \
     --log-opt max-size=1m \
     --log-opt max-file=5 \
-    drone/drone:0.8.1
+    drone/drone:0.8.4

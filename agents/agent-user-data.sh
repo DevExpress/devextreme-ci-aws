@@ -12,4 +12,4 @@ docker run -d \
     -e DRONE_MAX_PROCS=4 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --restart=on-failure \
-    drone/agent:0.8.1
+    drone/agent:0.8.4
