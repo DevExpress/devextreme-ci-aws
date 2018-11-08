@@ -10,6 +10,8 @@ RUN ln -sf /dev/null /var/log/nginx/access.log \
 
 ADD rootfs /
 
+RUN sed -i 's/client_max_body_size 1m/client_max_body_size 0/g' /etc/nginx/nginx.conf
+
 RUN mkdir -p /run/nginx
 RUN chmod +x /loop.sh
 
