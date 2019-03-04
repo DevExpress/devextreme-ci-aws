@@ -35,12 +35,18 @@ namespace Scaler {
                     Console.Write($"  {b.owner}/{b.name} #{b.number} ");
 
                     var zombie = true;
-                    foreach(var p in ReadBuildDetails(web, b).procs) {
-                        Console.Write(((string)p.state)[0]);
-                        if(p.state == "running" || p.state == "pending") {
-                            result.ActiveJobCount++;
-                            zombie = false;
+                    var details = ReadBuildDetails(web, b);
+                    if(details.procs != null) {
+                        foreach(var p in details.procs) {
+                            Console.Write(((string)p.state)[0]);
+                            if(p.state == "running" || p.state == "pending") {
+                                result.ActiveJobCount++;
+                                zombie = false;
+                            }
                         }
+                    } else {
+                        Console.Write("no procs!");
+                        zombie = false; // TODO
                     }
 
                     if(zombie) {
