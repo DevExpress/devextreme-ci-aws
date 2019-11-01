@@ -79,3 +79,13 @@ Clone this repo. Then:
 - In `dockerhub-cache`
     - create `secrets` file
     - `restart.sh`
+
+## Hacks
+
+1. Find builds w/o procs:
+
+    ```sql
+    select build_id, '#' || build_number 
+    from builds
+    where not (select count(*) from procs where proc_build_id = build_id);    
+    ```
