@@ -5,7 +5,7 @@
 
       "environmentVariables": {
         "SCALER_MAX_AGENTS": "....",
-        "SCALER_JOBS_PER_AGENT": "4",
+        "SCALER_JOBS_PER_AGENT": "....",
         "SCALER_DRONE_URL": "http://drone-server.drone-server-net:8000",
         "SCALER_DRONE_TOKEN": "(get it from /account/token)",
         "SCALER_AWS_REGION": "....",
