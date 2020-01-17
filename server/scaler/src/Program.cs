@@ -61,9 +61,16 @@ namespace Scaler {
                 }
 
                 // FYI https://github.com/drone/drone/issues/2189
-                foreach(var b in droneQueue.ZombieBuilds) {
+                foreach(var b in droneQueue.ZombieBuilds)
+                    Kill(b, "zombie");
+
+                // https://github.com/drone/drone/issues/2484
+                foreach(var b in droneQueue.CancelledBuilds)
+                    Kill(b, "cancelled");
+
+                void Kill(DroneBuild b, string reason) {
                     try {
-                        droneApi.ZombieKill(b);
+                        droneApi.KillBuild(b, reason);
                     } catch(Exception x) {
                         PrintError(x);
                     }

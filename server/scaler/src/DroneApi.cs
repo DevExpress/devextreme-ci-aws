@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 namespace Scaler {
@@ -8,11 +9,17 @@ namespace Scaler {
     class DroneBuild {
         public string Repo;
         public int Number;
+
+        public static DroneBuild FromApiObject(dynamic b) => new DroneBuild {
+            Repo = b.owner + "/" + b.name,
+            Number = (int)b.number
+        };
     }
 
     class DroneQueue {
         public int ActiveJobCount;
         public ICollection<DroneBuild> ZombieBuilds = new List<DroneBuild>();
+        public ICollection<DroneBuild> CancelledBuilds = new List<DroneBuild>();
     }
 
     class DroneApi {
@@ -35,9 +42,16 @@ namespace Scaler {
                     Console.Write($"  {b.owner}/{b.name} #{b.number} ");
 
                     var zombie = true;
-                    var details = ReadBuildDetails(web, b);
-                    if(details.procs != null) {
-                        foreach(var p in details.procs) {
+                    var procs = ReadBuildDetails(web, b).procs as IEnumerable<dynamic>;
+                    if(procs != null) {
+                        var hasCancelledProc = procs.Any(p => p.state == "failure" && p.error == "Cancelled");
+                        if(hasCancelledProc) {
+                            Console.WriteLine("has cancelled proc");
+                            result.CancelledBuilds.Add(DroneBuild.FromApiObject(b));
+                            continue;
+                        }
+
+                        foreach(var p in procs) {
                             Console.Write(((string)p.state)[0]);
                             if(p.state == "running" || p.state == "pending") {
                                 result.ActiveJobCount++;
@@ -51,10 +65,7 @@ namespace Scaler {
 
                     if(zombie) {
                         Console.Write(" [zombie]");
-                        result.ZombieBuilds.Add(new DroneBuild {
-                            Repo = b.owner + "/" + b.name,
-                            Number = (int)b.number
-                        });
+                        result.ZombieBuilds.Add(DroneBuild.FromApiObject(b));
                     }
 
                     Console.WriteLine();
@@ -64,8 +75,9 @@ namespace Scaler {
             return result;
         }
 
-        public void ZombieKill(DroneBuild build) {
-            Console.WriteLine($"Kill zombie build {build.Repo} #{build.Number}");
+        // TODO rename to Black Mamba?
+        public void KillBuild(DroneBuild build, string reason) {
+            Console.WriteLine($"Kill {reason} build {build.Repo} #{build.Number}");
             using(var web = new WebClient()) {
                 var url = $"{_url}/api/repos/{build.Repo}/builds/{build.Number}?access_token={WebUtility.UrlEncode(_token)}";
                 web.UploadString(url, "DELETE", "");
