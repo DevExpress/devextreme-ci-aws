@@ -20,7 +20,8 @@ sudo docker run -d \
     -e DRONE_GITHUB_SECRET=$DRONE_GITHUB_SECRET \
     -e DRONE_ORGS=DevExpress \
     -e DRONE_ADMIN=AlekseyMartynov \
-    -v drone-data:/var/lib/drone \
+    -e DRONE_DATABASE_DRIVER=postgres \
+    -e DRONE_DATABASE_DATASOURCE=postgres://drone:drone@drone-postgres.drone-server-net/drone?sslmode=disable \
     --net drone-server-net \
     -p 9000:9000 \
     --restart=unless-stopped \

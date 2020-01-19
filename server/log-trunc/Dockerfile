@@ -1,5 +1,4 @@
-FROM alpine:3.7
-RUN apk add --no-cache sqlite
+FROM postgres:12
 ADD rootfs /
 RUN chmod +x /loop.sh
 CMD [ "/loop.sh" ]

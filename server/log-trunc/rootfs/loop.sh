@@ -1,12 +1,14 @@
 #!/bin/sh
 
-DB=/drone-data/drone.sqlite
+export PGHOST=drone-postgres.drone-server-net
+export PGUSER=drone
+export PGPASSWORD=drone
 SURROGATE='[{"pos":0,"out":"(log truncated)"}]'
 
 TRUNC_BATCH_SIZE=5000
 
 while true; do
-    TRUNC_END_ID=`sqlite3 $DB 'select max(log_id) - 20 * 1000 from logs'`
+    TRUNC_END_ID=`psql -Atc 'select max(log_id) - 20 * 1000 from logs'`
 
     while [ "$TRUNC_END_ID" -gt 0 ]; do
         TRUNC_START_ID=$((TRUNC_END_ID-TRUNC_BATCH_SIZE+1))
@@ -15,14 +17,11 @@ while true; do
         echo ""
         echo "$(date)"
         echo "$TRUNC_COMMAND"
-        sqlite3 $DB "begin; $TRUNC_COMMAND; commit; select 'Affected: ' || changes();"
+        psql -c "$TRUNC_COMMAND"
 
         TRUNC_END_ID=$TRUNC_START_ID
         sleep 3
     done
-
-    echo ""
-    echo "Free pages: $(sqlite3 $DB 'pragma freelist_count') of $(sqlite3 $DB 'pragma page_count')"
 
     sleep 500000
 done

@@ -62,6 +62,10 @@ Clone this repo. Then:
 
 - `sudo docker network create drone-server-net`
 
+- In `drone-postgres`
+    - `restart.sh`
+    - Restore database
+
 - In `drone-server`
     - Create `secrets` file
     - `restart.sh`
@@ -87,5 +91,5 @@ Clone this repo. Then:
     ```sql
     select build_id, '#' || build_number 
     from builds
-    where not (select count(*) from procs where proc_build_id = build_id);    
+    where (select count(*) from procs where proc_build_id = build_id) = 0;
     ```
