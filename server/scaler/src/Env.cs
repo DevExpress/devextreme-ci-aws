@@ -1,26 +1,35 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
 namespace Scaler {
 
     static class Env {
-        public static int MaxAgents => Convert.ToInt32(Read("SCALER_MAX_AGENTS"));
-        public static int JobsPerAgent => Convert.ToInt32(Read("SCALER_JOBS_PER_AGENT"));
+        public static readonly int MaxAgents;
+        public static readonly int JobsPerAgent;
 
-        public static string DroneUrl => Read("SCALER_DRONE_URL");
-        public static string DroneToken => Read("SCALER_DRONE_TOKEN");
+        public static readonly string DroneUrl;
+        public static readonly string DroneToken;
 
-        public static string AwsRegion => Read("SCALER_AWS_REGION");
-        public static string AwsAccessKey => Read("SCALER_AWS_ACCES_KEY");
-        public static string AwsSecretKey => Read("SCALER_AWS_SECRET_KEY");
+        public static readonly string AwsRegion;
+        public static readonly string AwsAccessKey;
+        public static readonly string AwsSecretKey;
 
-        static string Read(string key) {
-            var value = Environment.GetEnvironmentVariable(key);
-            if(String.IsNullOrEmpty(value))
-                throw new ArgumentException($"Environment variable '{key}' is not defined");
+        static Env() {
+            var config = JsonConvert.DeserializeObject<IDictionary<string, string>>(
+                File.ReadAllText("config.json")
+            );
 
-            return value;
+            MaxAgents = Convert.ToInt32(config["SCALER_MAX_AGENTS"]);
+            JobsPerAgent = Convert.ToInt32(config["SCALER_JOBS_PER_AGENT"]);
+
+            DroneUrl = config["SCALER_DRONE_URL"];
+            DroneToken = config["SCALER_DRONE_TOKEN"];
+
+            AwsRegion = config["SCALER_AWS_REGION"];
+            AwsAccessKey = config["SCALER_AWS_ACCES_KEY"];
+            AwsSecretKey = config["SCALER_AWS_SECRET_KEY"];
         }
     }
 
