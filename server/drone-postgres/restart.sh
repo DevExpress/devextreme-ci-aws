@@ -10,6 +10,7 @@ sudo docker run -dti \
     -e POSTGRES_DB=drone \
     -v drone-postgres:/var/lib/postgresql/data \
     --net drone-server-net \
+    --stop-signal=SIGINT \
     --restart=unless-stopped \
     --log-opt max-size=1m \
     --log-opt max-file=5 \
