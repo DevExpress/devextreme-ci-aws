@@ -5,7 +5,12 @@ if [ ! -f rootfs/dhparam.pem ]; then
 fi
 
 sudo docker build -t private/https-proxy .
-sudo docker run --rm --net drone-server-net private/https-proxy nginx -t
+
+sudo docker run --rm \
+    -e TEST_NGINX_CONFIG=1 \
+    -v letsencrypt-config:/etc/letsencrypt \
+    --net drone-server-net \
+    private/https-proxy
 
 sudo docker rm -f https-proxy || true
 

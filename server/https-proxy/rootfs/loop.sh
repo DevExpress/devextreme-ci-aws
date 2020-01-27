@@ -11,15 +11,26 @@ certbot_renew() {
     fi
 }
 
+try_load_ssl_config() {
+    if [ -f /etc/letsencrypt/live/$LE_DOMAIN/fullchain.pem ]; then
+        mv /etc/nginx/conf.d.ssl/* /etc/nginx/conf.d
+        pidof nginx && nginx -s reload
+        echo "ssl config loaded"
+    else
+        echo "ssl config SKIPPED"
+    fi
+}
+
+if [ -n "$TEST_NGINX_CONFIG" ]; then
+    try_load_ssl_config
+    nginx -t
+    exit $?
+fi
+
 nginx -g 'daemon off;' &
 certbot_renew
 
-CERT_CONF=/etc/nginx/conf.d/cert.conf
-
-if [ -f /etc/letsencrypt/live/$LE_DOMAIN/fullchain.pem ] && [ ! -f $CERT_CONF ]; then
-    mv $CERT_CONF-delayed $CERT_CONF
-    nginx -s reload
-fi
+try_load_ssl_config
 
 while true; do
     sleep 43200
