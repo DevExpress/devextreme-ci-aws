@@ -8,9 +8,10 @@ SURROGATE='[{"pos":0,"out":"(log truncated)"}]'
 TRUNC_BATCH_SIZE=5000
 
 while true; do
+    TRUNC_MIN_ID=`psql -Atc 'select min(log_id)             from logs'`
     TRUNC_END_ID=`psql -Atc 'select max(log_id) - 20 * 1000 from logs'`
 
-    while [ "$TRUNC_END_ID" -gt 0 ]; do
+    while [ "$TRUNC_END_ID" -ge "$TRUNC_MIN_ID" ]; do
         TRUNC_START_ID=$((TRUNC_END_ID-TRUNC_BATCH_SIZE+1))
         TRUNC_COMMAND="update logs set log_data='$SURROGATE' where log_id between $TRUNC_START_ID and $TRUNC_END_ID"
 
