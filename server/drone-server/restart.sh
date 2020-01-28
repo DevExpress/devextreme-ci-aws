@@ -16,6 +16,7 @@ sudo docker run -d \
     -e DRONE_AGENT_SECRET=$DRONE_AGENT_SECRET \
     -e DRONE_OPEN=true \
     -e DRONE_GITHUB=true \
+    -e DRONE_GITHUB_SCOPE="repo:status,user:email,read:org,write:repo_hook" \
     -e DRONE_GITHUB_CLIENT=$DRONE_GITHUB_CLIENT \
     -e DRONE_GITHUB_SECRET=$DRONE_GITHUB_SECRET \
     -e DRONE_ORGS=DevExpress \
