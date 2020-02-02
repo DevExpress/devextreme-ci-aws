@@ -13,7 +13,12 @@ Paste (**replace `devextreme-ci-server`'s Public DNS**):
 ```json
 {
   "registry-mirrors": [ "http://ec2-....compute.amazonaws.com:5000" ],
-  "insecure-registries" : [ "ec2-....compute.amazonaws.com:5000" ]
+  "insecure-registries" : [ "ec2-....compute.amazonaws.com:5000" ],
+
+  "default-address-pools": [
+    { "base": "172.17.0.0/16", "size": 16 },
+    { "base": "172.18.0.0/16", "size": 24 }
+  ]
 }
 ```
 
