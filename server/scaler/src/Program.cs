@@ -2,7 +2,6 @@ using Amazon.AutoScaling.Model;
 using Amazon.EC2;
 using Amazon.EC2.Model;
 using Amazon.Runtime;
-using Amazon.SimpleSystemsManagement.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,9 +32,12 @@ namespace Scaler {
             + "  ) &"
             + ")";
 
+        const string CONTAINER_COUNT_SCRIPT = "docker ps -q | wc -l; exit ${PIPESTATUS[0]}";
+
         const int PAUSE_SECONDS = 5;
-        const int MIN_AGENT_UPTIME_MINUTES = 5;
-        const int REACHABILITY_ALARM_THRESHOLD_MINUTES = 10;
+
+        static readonly TimeSpan CONTAINER_COUNT_CHECK_INTERVAL = TimeSpan.FromMinutes(1);
+        static DateTime LastContainerCountCheck = DateTime.MinValue;
 
         static void Main(string[] args) {
             var droneApi = new DroneApi(Env.DroneUrl, Env.DroneToken);
@@ -173,46 +175,52 @@ namespace Scaler {
                 .Where(i => i.State.Name == InstanceStateName.Running)
                 .OrderBy(i => i.LaunchTime)
                 .ThenBy(i => i.InstanceId)
+                .Select(i => new AgentInfo(
+                    i.InstanceId,
+                    i.LaunchTime,
+                    i.Tags.Any(t => t.Key == SCALING_GROUP_TAG && t.Value == SCALING_GROUP_NAME)
+                ))
                 .ToArray();
 
             Console.WriteLine("Running agents: " + sortedRunningAgents.Length);
 
-            var excess = Math.Max(0, sortedRunningAgents.Length - desiredCount);
-            var idsToSendShutdownScript = new List<string>();
-            var idsToDetach = new List<string>();
-            var idsToCheckStatus = new List<string>();
+            if(!sortedRunningAgents.Any())
+                return;
 
-            foreach(var i in sortedRunningAgents) {
-                var uptime = TimeSpan.FromSeconds(Math.Round((DateTime.Now - i.LaunchTime).TotalSeconds));
-                var retain = uptime < TimeSpan.FromMinutes(MIN_AGENT_UPTIME_MINUTES);
-                var attached = i.Tags.Any(t => t.Key == SCALING_GROUP_TAG && t.Value == SCALING_GROUP_NAME);
-                var checkStatus = uptime > TimeSpan.FromMinutes(REACHABILITY_ALARM_THRESHOLD_MINUTES);
-
-                Console.Write($"  {i.InstanceId} up for {uptime}");
-                if(retain)
-                    Console.Write(" [retain]");
-                if(!attached)
-                    Console.Write(" [detached]");
-
-                if(checkStatus) {
-                    Console.Write(" [will check status]");
-                    idsToCheckStatus.Add(i.InstanceId);
-                }
-
-                if(excess > 0 && !retain) {
-                    Console.Write(" [will shutdown]");
-                    idsToSendShutdownScript.Add(i.InstanceId);
-
-                    if(attached) {
-                        Console.Write(" [will detach]");
-                        idsToDetach.Add(i.InstanceId);
-                    }
-
-                    excess--;
-                }
-
-                Console.WriteLine();
+            if(sortedRunningAgents.All(a => a.Retain)) {
+                Console.WriteLine("Retain all agents");
+                return;
             }
+
+            if(sortedRunningAgents.Length > desiredCount) {
+                if(DateTime.Now - LastContainerCountCheck > CONTAINER_COUNT_CHECK_INTERVAL) {
+                    LastContainerCountCheck = DateTime.Now;
+
+                    var containerCounts = ReadContainerCount(aws, sortedRunningAgents
+                        .Where(a => !a.Retain)
+                        .Select(a => a.InstanceId)
+                        .ToList()
+                    );
+
+                    foreach(var a in sortedRunningAgents) {
+                        if(containerCounts.ContainsKey(a.InstanceId))
+                            a.SetContainerCount(containerCounts[a.InstanceId]);
+                    }
+                } else {
+                    Console.WriteLine("Delay container count check");
+                }
+            } else {
+                Console.WriteLine("Skip container count check");
+            }
+
+            foreach(var a in sortedRunningAgents) {
+                Console.Write("  ");
+                Console.WriteLine(a);
+            }
+
+            var idsToCheckStatus = sortedRunningAgents.Where(a => a.WillCheckStatus).Select(a => a.InstanceId).ToList();
+            var idsToSendShutdownScript = sortedRunningAgents.Where(a => a.WillShutdown).Select(a => a.InstanceId).ToList();
+            var idsToDetach = sortedRunningAgents.Where(a => a.WillDetach).Select(a => a.InstanceId).ToList();
 
             if(idsToCheckStatus.Any()) {
                 var unreachableIds = FindUnreachable(aws, idsToCheckStatus);
@@ -234,17 +242,31 @@ namespace Scaler {
         static void TrySendShutdownScript(MyAWS aws, List<string> ids) {
             Console.WriteLine($"Send shutdown script to {ids.Count} instances");
             try {
-                var ssmResponse = aws.SSM.SendCommandAsync(new SendCommandRequest {
-                    InstanceIds = ids,
-                    DocumentName = "AWS-RunShellScript",
-                    Parameters = new Dictionary<string, List<string>> {
-                        ["commands"] = new List<string> { SHUTDOWN_SCRIPT }
-                    }
-                }).GetAwaiter().GetResult();
-                PrintStatus(ssmResponse);
+                aws.RunShellScriptAsync(ids, SHUTDOWN_SCRIPT, false).GetAwaiter().GetResult();
             } catch(Exception x) {
                 PrintError(x);
             }
+        }
+
+        static IDictionary<string, int> ReadContainerCount(MyAWS aws, List<string> ids) {
+            if(!ids.Any())
+                throw new ArgumentException("Don't call me with empty list");
+
+            Console.WriteLine($"Read running container count from {ids.Count} instances");
+
+            var result = new Dictionary<string, int>();
+            try {
+                foreach(var pair in aws.RunShellScriptAsync(ids, CONTAINER_COUNT_SCRIPT, true).GetAwaiter().GetResult()) {
+                    try {
+                        result[pair.Key] = Convert.ToInt32(pair.Value.Trim());
+                    } catch(Exception x) {
+                        PrintError(x);
+                    }
+                }
+            } catch(Exception x) {
+                PrintError(x);
+            }
+            return result;
         }
 
         static void TryDetachFromAutoScalingGroup(MyAWS aws, List<string> ids) {
@@ -294,7 +316,7 @@ namespace Scaler {
                 return statusResponse.InstanceStatuses
                     .Where(s => s.Status.Details.Any(d => d.Name == StatusName.Reachability
                         && d.Status == StatusType.Failed
-                        && DateTime.Now - d.ImpairedSince > TimeSpan.FromMinutes(REACHABILITY_ALARM_THRESHOLD_MINUTES)))
+                        && DateTime.Now - d.ImpairedSince > Env.AGENT_REACHABILITY_ALARM_THRESHOLD))
                     .Select(i => i.InstanceId)
                     .ToList();
             } catch(Exception x) {

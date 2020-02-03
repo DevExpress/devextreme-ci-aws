@@ -6,6 +6,9 @@ using System.IO;
 namespace Scaler {
 
     static class Env {
+        public static readonly TimeSpan AGENT_MIN_UPTIME = TimeSpan.FromMinutes(5);
+        public static readonly TimeSpan AGENT_REACHABILITY_ALARM_THRESHOLD = TimeSpan.FromMinutes(10);
+
         public static readonly int MaxAgents;
         public static readonly int JobsPerAgent;
 
