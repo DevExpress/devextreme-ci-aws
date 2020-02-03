@@ -312,12 +312,17 @@ namespace Scaler {
         }
 
         static void PrintStatus(AmazonWebServiceResponse response) {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.WriteLine("  Status " + response.HttpStatusCode);
+            Console.ResetColor();
         }
 
         static void PrintError(Exception x) {
+            Console.BackgroundColor = ConsoleColor.DarkRed;
+            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("  ERROR!");
             Console.WriteLine("  " + x.Message);
+            Console.ResetColor();
         }
     }
 }
