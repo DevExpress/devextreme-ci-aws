@@ -107,6 +107,8 @@ namespace Scaler {
                 allAgentsAreTerminated = allAgents.All(i => i.State.Name == InstanceStateName.Terminated);
 
                 if(!allAgentsAreTerminated) {
+                    AgentDiskUsageMonitor.Measure(aws, allAgents);
+
                     TryTerminate(aws, "stopped", allAgents.Where(i => i.State.Name == InstanceStateName.Stopped));
                     TryShutdownExcessiveRunning(aws, allAgents, desiredCount);
 
