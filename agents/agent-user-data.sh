@@ -4,6 +4,9 @@
 # - Replace DRONE_SECRET, DRONE_SERVER, DRONE_MAX_PROCS
 # - Match DRONE_MAX_PROCS to instance CPUs and SCALER_JOBS_PER_AGENT
 
+sysctl -w fs.inotify.max_user_instances=1024
+sysctl -w fs.inotify.max_user_watches=65536
+
 docker run -d \
     --name=drone-agent \
     -e DRONE_DEBUG=true \
