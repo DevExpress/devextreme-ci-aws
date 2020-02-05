@@ -44,9 +44,9 @@ namespace Scaler {
                     var zombie = true;
                     var procs = ReadBuildDetails(web, b).procs as IEnumerable<dynamic>;
                     if(procs != null) {
-                        var hasCancelledProc = procs.Any(p => p.state == "failure" && p.error == "Cancelled");
+                        var hasCancelledProc = procs.Any(p => p.state == "killed" || p.state == "failure" && p.error == "Cancelled");
                         if(hasCancelledProc) {
-                            Console.WriteLine("has cancelled proc");
+                            Console.WriteLine("has killed or cancelled proc");
                             result.CancelledBuilds.Add(DroneBuild.FromApiObject(b));
                             continue;
                         }
