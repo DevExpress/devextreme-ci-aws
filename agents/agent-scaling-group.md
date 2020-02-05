@@ -7,7 +7,7 @@
 - IAM: `devextreme-ci-agent-iam` (read [this](https://web.archive.org/web/20171108183210/https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-access.html#sysman-access-user))
 - User data: [agent-user-data.sh](agent-user-data.sh) (**make sure secrets are filled!**)
 - Assign a public IP address to every instance
-- General purpose SSD. Size based on stats (table below).
+- Magnetic (explanation below). Size based on stats (table below).
 - Security group: [`devextreme-ci-sg-agent`](../security-groups.md)
 
 ## Auto Scaling Group
@@ -22,6 +22,10 @@
 - Tags:
     - `Product=devextreme-ci`
     - `Role=devextreme-ci-agent`
+    
+## EBS: Magnetic vs General Purpose SSD
+- https://stackoverflow.com/a/24431099
+- https://pythonspeed.com/articles/slow-ci-aws-ec2/
 
 ## Disk Usage Stats
 
