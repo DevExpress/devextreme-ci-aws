@@ -78,10 +78,7 @@ namespace Scaler {
                     }
                 }
 
-                var desiredAgentCount = Math.Min(
-                    (int)Math.Ceiling((double)droneQueue.ActiveJobCount / Env.JobsPerAgent),
-                    Env.MaxAgents
-                );
+                var desiredAgentCount = CalcDesiredAgentCount(droneQueue.ActiveJobCount);
 
                 Console.WriteLine("Active jobs: " + droneQueue.ActiveJobCount);
                 Console.WriteLine("Desired agents: " + desiredAgentCount);
@@ -93,6 +90,22 @@ namespace Scaler {
 
                 PauseWithDots();
             }
+        }
+
+        static int CalcDesiredAgentCount(int jobCount) {
+            if(jobCount < 1)
+                return 0;
+
+            var ratio = 1d * jobCount / Env.JobsPerAgent;
+
+            var result = (int)Math.Floor(ratio);
+            if(ratio - Math.Floor(ratio) > 0.35)
+                result++;
+
+            result = Math.Max(result, 1);
+            result = Math.Min(result, Env.MaxAgents);
+
+            return result;
         }
 
         static void AdjustAgentCount(int desiredCount, out bool allAgentsAreTerminated) {
