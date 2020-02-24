@@ -41,6 +41,14 @@ namespace Scaler {
                 foreach(var b in ReadBuilds(web)) {
                     Console.Write($"  {b.owner}/{b.name} #{b.number} ");
 
+                    var createdAt = DateTimeOffset.FromUnixTimeSeconds((long)b.created_at);
+                    if((DateTime.UtcNow - createdAt).TotalHours > 6) {
+                        Console.WriteLine($"too old, created at {createdAt:u}");
+                        // Don't count too old builds
+                        // They may be abnormal queue items that are never picked up by an agent
+                        continue;
+                    }
+
                     var zombie = true;
                     var procs = ReadBuildDetails(web, b).procs as IEnumerable<dynamic>;
                     if(procs != null) {
