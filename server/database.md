@@ -17,16 +17,6 @@ where not exists (select * from builds where build_id = proc_build_id);
 
 delete from logs
 where not exists (select * from procs where proc_id = log_job_id);
-
-delete from repos
-where not exists (select * from builds where build_repo_id = repo_id);
-
-delete from users
-where not exists (select * from repos where repo_user_id = user_id);
-
-delete from perms
-where not exists (select * from users where user_id = perm_user_id)
-or not exists (select * from repos where repo_id = perm_repo_id);
 ```
 
 ## Empty queue
