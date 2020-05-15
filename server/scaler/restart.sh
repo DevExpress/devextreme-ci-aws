@@ -11,5 +11,5 @@ sudo docker run -dti \
     --log-opt max-file=5 \
     private/scaler
 
-sudo docker rmi mcr.microsoft.com/dotnet/core/sdk:2.1-alpine3.9
+sudo docker rmi mcr.microsoft.com/dotnet/core/sdk:2.1-alpine3.11
 sudo docker image prune -f
