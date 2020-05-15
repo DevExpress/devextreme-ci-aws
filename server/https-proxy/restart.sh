@@ -1,13 +1,9 @@
 #!/bin/bash -e
 
-if [ ! -f rootfs/dhparam.pem ]; then
-    openssl dhparam -outform pem -out rootfs/dhparam.pem 2048
-fi
-
 sudo docker build -t private/https-proxy .
 
 sudo docker run --rm \
-    -e TEST_NGINX_CONFIG=1 \
+    -e NGINX_TEST=true \
     -v letsencrypt-config:/etc/letsencrypt \
     --net drone-server-net \
     private/https-proxy

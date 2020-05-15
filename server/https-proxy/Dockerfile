@@ -1,19 +1,10 @@
-FROM alpine:3.11
+# https://github.com/AlekseyMartynov/nginx-base
+FROM private/nginx-base
 
-RUN apk add --no-cache nginx certbot
-
-RUN ln -sf /dev/null /var/log/nginx/access.log \
- && ln -sf /dev/null /var/log/nginx/error.log
-
-#RUN ln -sf /dev/stdout /var/log/nginx/access.log \
-# && ln -sf /dev/stderr /var/log/nginx/error.log
+ENV LE_EMAIL=js@devexpress.com
+ENV LE_DOMAINS=devextreme-ci.devexpress.com
+ENV NGINX_LOGS=false
 
 ADD rootfs /
 
 RUN sed -i 's/client_max_body_size 1m/client_max_body_size 0/g' /etc/nginx/nginx.conf
-
-RUN mkdir -p /run/nginx
-RUN chmod +x /loop.sh
-
-STOPSIGNAL SIGKILL
-CMD [ "/loop.sh" ]
